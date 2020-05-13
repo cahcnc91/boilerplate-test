@@ -1,12 +1,12 @@
 {
-   "type": "postgres",
+   "type": "mysql",
    "host": "localhost",
-   "port": 5432,
-   "username": "postgres",
-   "password": "",
+   "port": 3303,
+   "username": "cahcnc",
+   "password": "deckdeck",
    "database": "graphql-ts-boilerplate",
    "synchronize": true,
-   "logging": false,
+   "logging": true,
    "entities": [
       "src/entity/**/*.ts"
    ],
