@@ -1,9 +1,9 @@
 {
-   "type": "mysql",
+   "type": "postgres",
    "host": "localhost",
-   "port": 3303,
+   "port": 5432,
    "username": "cahcnc",
-   "password": "deckdeck",
+   "password": "",
    "database": "graphql-ts-boilerplate",
    "synchronize": true,
    "logging": true,
