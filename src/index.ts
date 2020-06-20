@@ -1,17 +1,28 @@
+
+const express = require('express');
+
 import "reflect-metadata";
-import { GraphQLServer } from 'graphql-yoga'
-import { importSchema } from 'graphql-import';
-import { resolvers } from './resolvers';
 import { createConnection } from "typeorm";
-import * as path from 'path';
+import { ApolloServer } from "apollo-server-express";
+import { buildSchema } from "type-graphql";
+import { HelloWorldResolver } from "./resolvers/HelloWorldResolver";
+import { MovieResolver } from './resolvers/MovieResolver';
 
-const typeDefs = importSchema(path.join(__dirname, "./schema.graphql"));
-const server = new GraphQLServer({ typeDefs, resolvers })
+(async () => {
+  const app = express();
 
-createConnection().then(() => {
-    console.log('Connected!');
-    server.start(() => console.log('Server is running on localhost:4000'))
-}).catch(() => console.log('error'));
+  await createConnection();
 
+  const apolloServer = new ApolloServer({
+    schema: await buildSchema({
+      resolvers: [HelloWorldResolver, MovieResolver]
+    }),
+    context: ({ req, res }) => ({ req, res })
+  });
 
-    
+  apolloServer.applyMiddleware({ app, cors: false });
+
+  app.listen(4000, () => {
+    console.log("express server started");
+  });
+})();
