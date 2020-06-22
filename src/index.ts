@@ -4,15 +4,10 @@ import "reflect-metadata";
 import { createConnection } from "typeorm";
 import { ApolloServer } from "apollo-server-express";
 import { buildSchema } from "type-graphql";
-import { MovieResolver } from './resolvers/MovieResolver';
-import { RegisterResolver } from './resolvers/RegisterResolver';
 import session from 'express-session';
 import connectRedis from 'connect-redis'
 import { redis } from './redis';
 import cors from 'cors';
-import { LoginResolver } from './resolvers/LoginResolver';
-import { MeResolver } from './resolvers/Me';
-import { ConfirmUserResolver } from './resolvers/ConfirmUser';
 
 (async () => {
   const app = express();
@@ -20,7 +15,7 @@ import { ConfirmUserResolver } from './resolvers/ConfirmUser';
   await createConnection();
 
   const schema = await buildSchema({
-    resolvers: [MovieResolver, RegisterResolver, LoginResolver, MeResolver, ConfirmUserResolver],
+    resolvers: [__dirname + '/resolvers/**/*.ts'],
     authChecker: ({ context: { req } }) => {
       if(req.session.userId){
         return true; // or false if access is denied
