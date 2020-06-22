@@ -1,8 +1,8 @@
 import { Connection } from "typeorm";
 import { testConn } from "../../test-utils/TestConn";
 import { gCall } from "../../test-utils/gcall";
-import faker from 'faker';
-import { User } from '../../entity/User';
+import faker from "faker";
+import { User } from "../../entity/User";
 
 let conn: Connection;
 beforeAll(async () => {
@@ -14,10 +14,8 @@ afterAll(async () => {
 });
 
 const registerMutation = `
-mutation Register($data: RegisterInput!) {
-  register(
-    data: $data
-  ) {
+{
+  me {
     id
     firstName
     lastName
@@ -27,39 +25,40 @@ mutation Register($data: RegisterInput!) {
 }
 `;
 
-describe("Register", () => {
-  it("creates a user", async () => {
-    const user = {
+describe("Me", () => {
+  it("get user", async () => {
+    const user = await User.create({
       firstName: faker.name.firstName(),
       lastName: faker.name.lastName(),
       email: faker.internet.email(),
-      password: faker.internet.password()
-    };
+      password: faker.internet.password(),
+    }).save();
 
     const response = await gCall({
       source: registerMutation,
-      variableValues: {
-        data: user,
-      },
+      userId: user.id,
     });
-
-    if (response.errors) {
-      console.log(response.errors[0].originalError);
-    }
 
     expect(response).toMatchObject({
       data: {
-        register: {
+        me: {
+          id: `${user.id}`,
           firstName: user.firstName,
           lastName: user.lastName,
-          email: user.email
-        }
-      }
+        },
+      },
+    });
+  });
+
+  it("return null", async () => {
+    const response = await gCall({
+      source: registerMutation,
     });
 
-    const dbUser = await User.findOne({where: {email: user.email}})
-    expect(dbUser).toBeDefined();
-    expect(dbUser!.confirmed).toBeFalsy();
-    expect(dbUser!.firstName).toBe(user.firstName);
+    expect(response).toMatchObject({
+      data: {
+        me: null,
+      },
+    });
   });
 });
