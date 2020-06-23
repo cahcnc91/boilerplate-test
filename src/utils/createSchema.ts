@@ -6,6 +6,8 @@ import { ForgotPasswordResolver } from "../resolvers/forgot-password/ForgotPassw
 import { LoginResolver } from "../resolvers/login/Login.resolver";
 import { MeResolver } from '../resolvers/me/Me.resolver';
 import { CreateUserResolver } from '../resolvers/create-user/CreateUser.resolver';
+import { MovieResolver } from '../resolvers/Movie.resolver';
+import { LogoutResolver } from '../resolvers/logout/Logout.resolver';
 
 export const createSchema = () => {
   return buildSchema({
@@ -15,8 +17,11 @@ export const createSchema = () => {
       ConfirmUserResolver,
       ForgotPasswordResolver,
       LoginResolver,
+      LogoutResolver,
       MeResolver,
-      CreateUserResolver
+      CreateUserResolver,
+      MovieResolver
+
     ],
     authChecker: ({ context: { req } }) => {
       if (req.session.userId) {

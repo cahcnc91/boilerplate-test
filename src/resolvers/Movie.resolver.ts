@@ -6,8 +6,11 @@ import {
   Query,
   InputType,
   Field,
+  Ctx,
 } from "type-graphql";
 import { Movie } from "../entity/Movie";
+import { User } from "../entity/User";
+import { MyContext } from "../types/MyContent";
 
 @InputType()
 class MovieInput {
@@ -20,18 +23,31 @@ class MovieInput {
 
 @InputType()
 class MovieUpdateInput {
-  @Field(() => String, {nullable: true})
+  @Field(() => String, { nullable: true })
   title?: string;
 
-  @Field(() => Int, {nullable: true})
+  @Field(() => Int, { nullable: true })
   minutes?: number;
 }
 
 @Resolver()
 export class MovieResolver {
   @Mutation(() => Movie)
-  async createMovie(@Arg("options", () => MovieInput) options: MovieInput) {
-    const movie = await Movie.create(options).save();
+  async createMovie(
+    @Arg("options", () => MovieInput) options: MovieInput,
+    @Ctx() ctx: MyContext
+  ) {
+    if (!ctx.req.session!.userId) {
+      return undefined;
+    }
+
+    const user = await User.findOne(ctx.req.session!.userId);
+
+    if(!user){
+      return null
+    }
+    console.log(user)
+    const movie = await Movie.create({...options, ownerId: user.id}).save();
     return movie;
   }
 
@@ -45,15 +61,14 @@ export class MovieResolver {
   }
 
   @Mutation(() => Boolean)
-  async deleteMovie(
-      @Arg("id", () => Int) id: number
-  ) {
-      await Movie.delete({id});
-      return true;
+  async deleteMovie(@Arg("id", () => Int) id: number) {
+    await Movie.delete({ id });
+    return true;
   }
 
   @Query(() => [Movie])
-  movies() {
-    return Movie.find();
+  async movies() {
+    const movies = Movie.find({ relations: ["owner"]});
+    return movies
   }
 }
