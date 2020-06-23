@@ -5,6 +5,7 @@ import { ChangePasswordResolver } from "../resolvers/change-password/ChangePassw
 import { ForgotPasswordResolver } from "../resolvers/forgot-password/ForgotPassword.resolver";
 import { LoginResolver } from "../resolvers/login/Login.resolver";
 import { MeResolver } from '../resolvers/me/Me.resolver';
+import { CreateUserResolver } from '../resolvers/create-user/CreateUser.resolver';
 
 export const createSchema = () => {
   return buildSchema({
@@ -14,7 +15,8 @@ export const createSchema = () => {
       ConfirmUserResolver,
       ForgotPasswordResolver,
       LoginResolver,
-      MeResolver
+      MeResolver,
+      CreateUserResolver
     ],
     authChecker: ({ context: { req } }) => {
       if (req.session.userId) {
