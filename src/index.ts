@@ -8,6 +8,7 @@ import connectRedis from 'connect-redis'
 import { redis } from './redis';
 import cors from 'cors';
 import { createSchema } from './utils/createSchema';
+import "dotenv/config"
 
 (async () => {
   const app = express();
@@ -28,7 +29,7 @@ import { createSchema } from './utils/createSchema';
       client: (redis as any)
     }),
     name: "qid",
-    secret: "asdfghjkl",
+    secret: process.env.ACCESS_TOKEN_SECRET!,
     resave: false,
     saveUninitialized: false,
     cookie: {

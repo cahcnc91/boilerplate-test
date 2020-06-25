@@ -1,3 +1,4 @@
+
 import {
   Resolver,
   Mutation,
@@ -7,10 +8,11 @@ import {
   InputType,
   Field,
   Ctx,
+  UseMiddleware,
 } from "type-graphql";
 import { Movie } from "../entity/Movie";
-import { User } from "../entity/User";
 import { MyContext } from "../types/MyContent";
+import { isAuth } from '../middleware/isAuth';
 
 @InputType()
 class MovieInput {
@@ -32,22 +34,20 @@ class MovieUpdateInput {
 
 @Resolver()
 export class MovieResolver {
+  @UseMiddleware(isAuth)
   @Mutation(() => Movie)
   async createMovie(
     @Arg("options", () => MovieInput) options: MovieInput,
     @Ctx() ctx: MyContext
   ) {
-    if (!ctx.req.session!.userId) {
-      return undefined;
-    }
 
-    const user = await User.findOne(ctx.req.session!.userId);
+    console.log("here")
+    console.log(options)
+    console.log(ctx.req.session)
 
-    if(!user){
-      return null
-    }
-    console.log(user)
-    const movie = await Movie.create({...options, ownerId: user.id}).save();
+    const ownerId = ctx.req.session!.userId;
+
+    const movie = await Movie.create({...options, ownerId}).save();
     return movie;
   }
 

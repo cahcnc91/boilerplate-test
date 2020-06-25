@@ -1,7 +1,6 @@
-import {Entity, PrimaryGeneratedColumn, Column, BaseEntity, OneToOne, JoinColumn} from 'typeorm';
+import {Entity, PrimaryGeneratedColumn, Column, BaseEntity,ManyToOne} from 'typeorm';
 import { Field, Int, ObjectType } from 'type-graphql';
 import { User } from './User';
-//import { User } from './User';
 
 @ObjectType()
 @Entity()
@@ -23,7 +22,6 @@ export class Movie extends BaseEntity {
     ownerId: number
 
     @Field()
-    @OneToOne(() => User)
-    @JoinColumn()
+    @ManyToOne(() => User)
     owner: User
 }

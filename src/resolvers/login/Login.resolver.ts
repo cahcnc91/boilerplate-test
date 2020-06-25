@@ -1,35 +1,48 @@
-import { Resolver, Mutation, Arg, Ctx } from "type-graphql";
+import { Resolver, Mutation, Arg, Ctx, Field, ObjectType } from "type-graphql";
 import * as bcrypt from 'bcryptjs'
 import { User } from '../../entity/User';
 import { MyContext } from '../../types/MyContent';
+import { createRefreshToken, createAccessToken } from '../../auth';
+
+@ObjectType()
+class LoginResponse {
+  @Field()
+  acessToken: string
+}
 
 @Resolver()
 export class LoginResolver {
-  @Mutation(() => User, {nullable: true})
+  @Mutation(() => LoginResponse)
   async login(
       @Arg('email') email: string,
       @Arg('password') password: string,
       @Ctx() ctx: MyContext
-  ): Promise<User | null> {
+  ): Promise<LoginResponse> {
       const user = await User.findOne({ where: {email}})
 
       if(!user){
-          return null
+          throw new Error('no user found')
       }
 
       const valid = await bcrypt.compare(password, user.password)
 
       if(!valid){
-          return null
+        throw new Error('password not valid')
       }
 
       if(!user.confirmed){
-        return null
+        throw new Error('user was not confirmed yet')
       }
 
-      ctx.req.session!.userId = user.id;
+      //login successull
 
-      return user;
+      ctx.req.session!.userId = user.id;
+      // ctx.res.cookie('jid', 
+      // createRefreshToken(user), {httpOnly: true})
+
+      return {
+        acessToken: createAccessToken(user)
+      }
   }
 
 }
