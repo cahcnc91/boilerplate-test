@@ -38,14 +38,14 @@ export class MovieResolver {
   @Mutation(() => Movie)
   async createMovie(
     @Arg("options", () => MovieInput) options: MovieInput,
-    @Ctx() ctx: MyContext
+    @Ctx() {payload}: MyContext
   ) {
 
-    console.log("here")
-    console.log(options)
-    console.log(ctx.req.session)
+    const ownerId = payload?.userId
 
-    const ownerId = ctx.req.session!.userId;
+    if(!ownerId){
+      throw new Error('not authenticated')
+    }
 
     const movie = await Movie.create({...options, ownerId}).save();
     return movie;
@@ -66,6 +66,7 @@ export class MovieResolver {
     return true;
   }
 
+  @UseMiddleware(isAuth)
   @Query(() => [Movie])
   async movies() {
     const movies = Movie.find({ relations: ["owner"]});

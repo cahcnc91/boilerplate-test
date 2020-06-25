@@ -2,7 +2,8 @@ import { Resolver, Mutation, Arg, Ctx, Field, ObjectType } from "type-graphql";
 import * as bcrypt from 'bcryptjs'
 import { User } from '../../entity/User';
 import { MyContext } from '../../types/MyContent';
-import { createRefreshToken, createAccessToken } from '../../auth';
+import { createRefreshToken, createAccessToken } from '../../utils/auth';
+import { sendRefreshToken } from '../../utils/sendRefreshToken';
 
 @ObjectType()
 class LoginResponse {
@@ -34,11 +35,8 @@ export class LoginResolver {
         throw new Error('user was not confirmed yet')
       }
 
-      //login successull
-
-      ctx.req.session!.userId = user.id;
-      // ctx.res.cookie('jid', 
-      // createRefreshToken(user), {httpOnly: true})
+      // login successull
+      sendRefreshToken(ctx.res, createRefreshToken(user))
 
       return {
         acessToken: createAccessToken(user)

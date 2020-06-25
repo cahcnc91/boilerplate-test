@@ -3,12 +3,14 @@ import express from 'express';
 import "reflect-metadata";
 import { createConnection } from "typeorm";
 import { ApolloServer } from "apollo-server-express";
-import session from 'express-session';
-import connectRedis from 'connect-redis'
-import { redis } from './redis';
 import cors from 'cors';
+import cookieParser from "cookie-parser";
 import { createSchema } from './utils/createSchema';
-import "dotenv/config"
+import "dotenv/config";
+import {verify} from 'jsonwebtoken'
+import { User } from './entity/User';
+import { createAccessToken, createRefreshToken } from './utils/auth';
+import { sendRefreshToken } from './utils/sendRefreshToken';
 
 (async () => {
   const app = express();
@@ -17,28 +19,41 @@ import "dotenv/config"
 
   const schema = await createSchema();
 
-  const RedisStore = connectRedis(session);
-
   app.use(cors({
     credentials: true,
     origin: "http://localhost:3000"
   }))
 
-  app.use(session({
-    store: new RedisStore({
-      client: (redis as any)
-    }),
-    name: "qid",
-    secret: process.env.ACCESS_TOKEN_SECRET!,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 1000 * 60 * 60 * 24 * 7 * 365, // 7 years
-    },
-  }))
+  app.use(cookieParser());
 
+  app.post("/refresh_token", async (req, res) => {
+    const token = req.cookies.jid
+
+    if(!token){
+      return res.send({ok: false, acessToken: ''})
+    }
+
+    let payload: any = null;
+
+    try{
+      payload = verify(token, process.env.REFRESH_TOKEN!)
+
+    } catch(err){
+      console.log(err)
+      return res.send({ok: false, acessToken: ''})
+    }
+
+    //token is valid
+    const user = await User.findOne({id: payload.userId});
+
+    if(!user){
+      return res.send({ok: false, acessToken: ''})
+    }
+
+    sendRefreshToken(res, createRefreshToken(user))
+
+    return res.send({ok: true, acessToken: createAccessToken(user)})
+  })
 
   const apolloServer = new ApolloServer({
     schema,
