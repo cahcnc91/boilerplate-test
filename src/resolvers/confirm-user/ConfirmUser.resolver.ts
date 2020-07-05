@@ -16,7 +16,6 @@ export class ConfirmUserResolver {
 
       await User.update({id: parseInt(userId)}, {confirmed: true});
       redis.del(token)
-
       return true;
   }
 

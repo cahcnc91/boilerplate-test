@@ -1,61 +1,124 @@
-import React from "react";
+import React, {useContext} from "react";
 import ReactDOM from "react-dom";
-import { ApolloProvider } from "react-apollo";
-import { InMemoryCache } from "apollo-cache-inmemory";
-import { ApolloProvider as ApolloHooksProvider } from "react-apollo-hooks";
-import { BrowserRouter as Router, Switch, Route } from "react-router-dom";
-import App from "./App";
-import Register from "./components/Register/Register";
-import Login from "./components/Login/Login";
-
-import * as serviceWorker from "./serviceWorker";
-
+import { ApolloProvider as ApolloHooksProvider } from "@apollo/react-hooks";
+import Routes from "./Routes";
 import { ApolloClient } from "apollo-client";
-import { createHttpLink } from "apollo-link-http";
-import { setContext } from "apollo-link-context";
+import { InMemoryCache } from "apollo-cache-inmemory";
+import { HttpLink } from "apollo-link-http";
+import { onError } from "apollo-link-error";
+import { ApolloLink, Observable } from "apollo-link";
+import { TokenRefreshLink } from "apollo-link-token-refresh";
+import jwtDecode from "jwt-decode";
+import { getAccessToken, setAccessToken } from "./accessToken";
+import { StateProvider } from "./store.js";
 
-const httpLink = createHttpLink({
-  uri: "http://localhost:4000/graphql",
-});
+const cache = new InMemoryCache();
 
-const authLink = setContext((_, { headers }) => {
-  // get the authentication token from local storage if it exists
-  const token = localStorage.getItem("qid");
-  return {
-    headers: {
-      ...headers,
-      authorization: token ? `Bearer ${token}` : "",
-    },
-  };
-});
+const requestLink = new ApolloLink(
+  
+  (operation, forward) =>
+    new Observable((observer) => {
+      let handle;
+      Promise.resolve(operation)
+        .then((operation) => {
+          const accessToken = getAccessToken();
+          if (accessToken) {
+            operation.setContext({
+              headers: {
+                authorization: `bearer ${accessToken}`,
+              },
+            });
+          }
+        })
+        .then(() => {
+          handle = forward(operation).subscribe({
+            next: observer.next.bind(observer),
+            error: observer.error.bind(observer),
+            complete: observer.complete.bind(observer),
+          });
+        })
+        .catch(observer.error.bind(observer));
+
+      return () => {
+        if (handle) handle.unsubscribe();
+      };
+    })
+);
 
 const client = new ApolloClient({
-  link: authLink.concat(httpLink),
-  cache: new InMemoryCache(),
+  link: ApolloLink.from([
+    new TokenRefreshLink({
+      accessTokenField: "accessToken",
+      isTokenValidOrUndefined: () => {
+        const token = getAccessToken();
+
+        if (!token) {
+          return true;
+        }
+
+        try {
+          const { exp } = jwtDecode(token);
+          if (Date.now() >= exp * 1000) {
+            return false;
+          } else {
+            return true;
+          }
+        } catch (err) {
+          console.log(err);
+          return false;
+        }
+      },
+      fetchAccessToken: () => {
+        return fetch("http://localhost:4000/refresh_token", {
+          method: "POST",
+          credentials: "include",
+        });
+      },
+      handleFetch: (accessToken) => {
+        setAccessToken(accessToken);
+      },
+      handleError: (err) => {
+        // full control over handling token fetch Error
+        console.warn("Your refresh token is invalid. Try to relogin");
+        console.log(err);
+      },
+    }),
+    onError(({ graphQLErrors, networkError }) => {
+      if (graphQLErrors) {
+        //sendToLoggingService(graphQLErrors);
+      }
+      if (networkError) {
+        //logoutUser();
+      }
+    }),
+    requestLink,
+    new HttpLink({
+      uri: "http://localhost:4000/graphql",
+      credentials: "include",
+    }),
+  ]),
+  cache,
+  resolvers: {
+    Mutation: {
+      updateNetworkStatus: (_, { isConnected }, { cache }) => {
+        cache.writeData({ data: { isConnected } });
+        return null;
+      },
+    },
+  },
+});
+
+cache.writeData({
+  data: {
+    isConnected: true,
+  },
 });
 
 ReactDOM.render(
-  <ApolloProvider client={client}>
+  <StateProvider>
     <ApolloHooksProvider client={client}>
-      <Router>
-        <Switch>
-          <Route path="/home">
-            <App />
-          </Route>
-          <Route path="/register">
-            <Register />
-          </Route>
-          <Route path="/login">
-            <Login />
-          </Route>
-        </Switch>
-      </Router>
+      <Routes />
     </ApolloHooksProvider>
-  </ApolloProvider>,
+  </StateProvider>,
   document.getElementById("root")
 );
-
-// If you want your app to work offline and load faster, you can change
-// unregister() to register() below. Note this comes with some pitfalls.
-// Learn more about service workers: https://bit.ly/CRA-PWA
-serviceWorker.unregister();

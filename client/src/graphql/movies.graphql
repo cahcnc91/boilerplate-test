@@ -1,0 +1,11 @@
+query GetMovies {
+  movies{
+    id
+    ownerId
+    title,
+    owner {
+      firstName,
+      lastName
+    }
+  }
+}

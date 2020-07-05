@@ -1,10 +1,8 @@
 import { MiddlewareFn } from "type-graphql";
-import { MyContext } from "../types/MyContent";
 import { verify } from "jsonwebtoken";
+import { MyContext } from '../types/MyContent';
 
-//bearer 234234r234234
-export const isAuth: MiddlewareFn<MyContext> = async ({ context }, next) => {
-
+export const isAuth: MiddlewareFn<MyContext> = ({ context }, next) => {
   const authorization = context.req.headers["authorization"];
 
   if (!authorization) {
@@ -17,6 +15,8 @@ export const isAuth: MiddlewareFn<MyContext> = async ({ context }, next) => {
     context.payload = payload as any;
   } catch (err) {
     console.log(err);
+    throw new Error("not authenticated");
   }
+
   return next();
 };

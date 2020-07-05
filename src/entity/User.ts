@@ -1,5 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, BaseEntity } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, BaseEntity, OneToMany } from "typeorm";
 import { ObjectType, Field, ID, Root } from "type-graphql";
+import { Movie } from './Movie';
 
 @ObjectType()
 @Entity()
@@ -30,4 +31,10 @@ export class User extends BaseEntity {
 
   @Column('bool', {default: false})
   confirmed: boolean;
+
+  @Column("int", {default: 0})
+  tokenVersion: number
+
+  @OneToMany(() => Movie, movie => movie.owner)
+  movies: Movie[];
 }

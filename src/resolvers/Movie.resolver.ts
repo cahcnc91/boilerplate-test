@@ -13,6 +13,7 @@ import {
 import { Movie } from "../entity/Movie";
 import { MyContext } from "../types/MyContent";
 import { isAuth } from '../middleware/isAuth';
+import { User } from '../entity/User';
 
 @InputType()
 class MovieInput {
@@ -38,17 +39,19 @@ export class MovieResolver {
   @Mutation(() => Movie)
   async createMovie(
     @Arg("options", () => MovieInput) options: MovieInput,
-    @Ctx() {payload}: MyContext
-  ) {
+    @Ctx() ctx: MyContext
+  ):Promise<Movie> {
 
-    const ownerId = payload?.userId
+    const ownerId = ctx.payload?.userId;
 
-    if(!ownerId){
-      throw new Error('not authenticated')
+    let movie =  await Movie.create({...options, ownerId}).save();
+    const owner = await User.findOne({where: {id: movie.ownerId}});
+
+    if(owner){
+      movie.owner = owner;
     }
-
-    const movie = await Movie.create({...options, ownerId}).save();
-    return movie;
+    
+    return movie
   }
 
   @Mutation(() => Boolean)

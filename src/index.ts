@@ -1,59 +1,60 @@
-
-import express from 'express';
-import "reflect-metadata";
-import { createConnection } from "typeorm";
-import { ApolloServer } from "apollo-server-express";
-import cors from 'cors';
-import cookieParser from "cookie-parser";
-import { createSchema } from './utils/createSchema';
 import "dotenv/config";
-import {verify} from 'jsonwebtoken'
-import { User } from './entity/User';
-import { createAccessToken, createRefreshToken } from './utils/auth';
+import "reflect-metadata";
+import express from "express";
+import { ApolloServer } from "apollo-server-express";
+import { createConnection } from "typeorm";
+import cookieParser from "cookie-parser";
+import { verify } from "jsonwebtoken";
+import cors from "cors";
+import { User } from "./entity/User";
 import { sendRefreshToken } from './utils/sendRefreshToken';
+import { createRefreshToken, createAccessToken } from './utils/auth';
+import { createSchema } from './utils/createSchema';
 
 (async () => {
   const app = express();
-
-  await createConnection();
-
-  const schema = await createSchema();
-
-  app.use(cors({
-    credentials: true,
-    origin: "http://localhost:3000"
-  }))
-
+  app.use(
+    cors({
+      origin: "http://localhost:3000",
+      credentials: true
+    })
+  );
   app.use(cookieParser());
-
+  app.get("/", (_req, res) => res.send("hello"));
   app.post("/refresh_token", async (req, res) => {
-    const token = req.cookies.jid
-
-    if(!token){
-      return res.send({ok: false, acessToken: ''})
+    const token = req.cookies.jid;
+    if (!token) {
+      return res.send({ ok: false, accessToken: "" });
     }
 
     let payload: any = null;
-
-    try{
-      payload = verify(token, process.env.REFRESH_TOKEN!)
-
-    } catch(err){
-      console.log(err)
-      return res.send({ok: false, acessToken: ''})
+    try {
+      payload = verify(token, process.env.REFRESH_TOKEN_SECRET!);
+    } catch (err) {
+      console.log(err);
+      return res.send({ ok: false, accessToken: "" });
     }
 
-    //token is valid
-    const user = await User.findOne({id: payload.userId});
+    // token is valid and
+    // we can send back an access token
+    const user = await User.findOne({ id: payload.userId });
 
-    if(!user){
-      return res.send({ok: false, acessToken: ''})
+    if (!user) {
+      return res.send({ ok: false, accessToken: "" });
     }
 
-    sendRefreshToken(res, createRefreshToken(user))
+    if (user.tokenVersion !== payload.tokenVersion) {
+      return res.send({ ok: false, accessToken: "" });
+    }
 
-    return res.send({ok: true, acessToken: createAccessToken(user)})
-  })
+    sendRefreshToken(res, createRefreshToken(user));
+
+    return res.send({ user, accessToken: createAccessToken(user) });
+  });
+
+  await createConnection();
+
+  const schema = createSchema()
 
   const apolloServer = new ApolloServer({
     schema,

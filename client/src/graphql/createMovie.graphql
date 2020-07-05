@@ -1,0 +1,11 @@
+mutation CreateMovie($options: MovieInput!) {
+  createMovie(options: $options) {
+    id
+    ownerId
+    title
+    owner {
+      firstName
+      lastName
+    }
+  }
+}

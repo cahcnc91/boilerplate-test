@@ -1,46 +1,56 @@
-import { Resolver, Mutation, Arg, Ctx, Field, ObjectType } from "type-graphql";
+import { Resolver, Mutation, Arg, Ctx, Field, ObjectType, Int } from "type-graphql";
 import * as bcrypt from 'bcryptjs'
 import { User } from '../../entity/User';
 import { MyContext } from '../../types/MyContent';
 import { createRefreshToken, createAccessToken } from '../../utils/auth';
 import { sendRefreshToken } from '../../utils/sendRefreshToken';
+import { getConnection } from 'typeorm';
 
 @ObjectType()
 class LoginResponse {
   @Field()
-  acessToken: string
+  accessToken: string;
+  @Field(() => User)
+  user: User;
 }
 
 @Resolver()
 export class LoginResolver {
   @Mutation(() => LoginResponse)
   async login(
-      @Arg('email') email: string,
-      @Arg('password') password: string,
-      @Ctx() ctx: MyContext
+    @Arg("email") email: string,
+    @Arg("password") password: string,
+    @Ctx() { res }: MyContext
   ): Promise<LoginResponse> {
-      const user = await User.findOne({ where: {email}})
+    const user = await User.findOne({ where: { email } });
 
-      if(!user){
-          throw new Error('no user found')
-      }
+    if (!user) {
+      throw new Error("could not find user");
+    }
 
-      const valid = await bcrypt.compare(password, user.password)
+    const valid = await bcrypt.compare(password, user.password);
 
-      if(!valid){
-        throw new Error('password not valid')
-      }
+    if (!valid) {
+      throw new Error("bad password");
+    }
 
-      if(!user.confirmed){
-        throw new Error('user was not confirmed yet')
-      }
+    // login successful
 
-      // login successull
-      sendRefreshToken(ctx.res, createRefreshToken(user))
+    sendRefreshToken(res, createRefreshToken(user));
 
-      return {
-        acessToken: createAccessToken(user)
-      }
+    return {
+      accessToken: createAccessToken(user),
+      user
+    };
+  }
+
+  @Mutation(() => Boolean)
+  async revokeRefreshTokensForUser(
+    @Arg('userId', () => Int) userId: number
+  ){
+    await getConnection().getRepository(User).increment({id: userId}, 'tokenVersion', 1)
+
+    return true
   }
 
 }

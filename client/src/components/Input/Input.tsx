@@ -1,31 +1,43 @@
 import React, { useState } from "react";
-import { useMutation } from "@apollo/react-hooks";
-import gql from "graphql-tag";
-import { Movie, MovieInput } from "../../generated/types";
-
-const ADD_MOVIE = gql`
-  mutation createMovie($options: MovieInput!) {
-    createMovie(options: $options) {
-      title
-      owner {
-        name
-      }
-    }
-  }
-`;
+import { useCreateMovieMutation, GetMoviesDocument, GetMoviesQuery, useGetMoviesQuery } from '../../generated/types.d'
 
 export default function Input() {
   const [newMovie, setNewMovie] = useState("");
-  const [createMovie, { error, data }] = useMutation(ADD_MOVIE, {
-    variables: { options: { minutes: 100, title: newMovie } },
-  });
+  const [createMovie, { error }] = useCreateMovieMutation();
 
-  const pressedEnter = (e: number) => {
+  const pressedEnter = async (e: number) => {
     if (e == 13) {
-      createMovie();
+      await createMovie({
+        variables: { options: { minutes: 100, title: newMovie } },
+        update: (cache, {data}) => {
+          const movies = cache.readQuery<GetMoviesQuery>({
+            query: GetMoviesDocument
+          });
+          if(!data){
+            return null
+          }
+
+          console.log(data.createMovie)
+          console.log(movies?.movies)
+
+          cache.writeQuery({
+            query: GetMoviesDocument,
+            data: {
+              movies: [
+                ...movies?.movies!,
+                data.createMovie
+              ]
+            }
+          })
+        }
+        
+      }).catch(err => console.log(err))
     }
   };
-  console.log(data);
+
+  if(error){
+    return <div>error !</div>
+  }
 
   return (
     <input

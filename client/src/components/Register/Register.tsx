@@ -1,42 +1,43 @@
 import React from "react";
-import gql from "graphql-tag";
-import { useMutation } from "@apollo/react-hooks";
-import { RegisterInput } from "../../generated/types";
 import { useForm } from "../../hooks/useForm";
-
-const CREATE_USER = gql`
-  mutation register($data: RegisterInput!) {
-    register(data: $data) {
-      firstName
-      lastName
-      email
-    }
-  }
-`;
+import { useRegisterMutation } from "../../generated/types.d";
+import { useHistory } from "react-router-dom";
 
 export default function Register() {
+  const history = useHistory();
+
   const [formData, setFormData] = useForm({
     firstName: "",
     lastName: "",
     email: "",
     password: "",
   });
-  const [registerUser, { error, data }] = useMutation(CREATE_USER, {
-    variables: {
-      data: {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        password: formData.password,
-      },
-    },
-  });
 
-  const submitForm = (e: React.FormEvent) => {
-      console.log("submitted")
-      e.preventDefault()
-      registerUser()
-  }
+  const [registerUser, { error, data }] = useRegisterMutation();
+
+  const submitForm = async (e: React.FormEvent) => {
+    console.log("submitted");
+    e.preventDefault();
+
+    const response = await registerUser({
+      variables: {
+        data: {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          password: formData.password,
+        },
+      },
+    });
+
+    if (response.data?.register) {
+      history.push("/confirm");
+    }
+
+    if(error){
+      console.log(error)
+    }
+  };
   return (
     <div className="container">
       <h2>Register</h2>
@@ -84,7 +85,7 @@ export default function Register() {
           />
         </div>
         <button type="submit" className="btn btn-primary">
-          Submit
+          Register
         </button>
       </form>
     </div>

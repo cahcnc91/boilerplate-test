@@ -21,7 +21,7 @@ export class Movie extends BaseEntity {
     @Column('int')
     ownerId: number
 
-    @Field()
-    @ManyToOne(() => User)
-    owner: User
+    @Field(() => User)
+    @ManyToOne(() => User, user => user.movies)
+    owner: User;
 }

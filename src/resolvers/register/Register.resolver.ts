@@ -5,7 +5,6 @@ import { RegisterInput } from "../Inputs";
 import { isAuth } from '../../middleware/isAuth';
 import { createConfirmationUrl } from '../../utils/createConfirmationUrl';
 import { sendEmail } from '../../utils/sendEmail';
-import { confirmationPassword } from '../../constants/redisPrefixes';
 
 @Resolver()
 export class RegisterResolver {
@@ -16,10 +15,10 @@ export class RegisterResolver {
     return "hi!";
   }
 
-  @Mutation(() => User)
+  @Mutation(() => Boolean)
   async register(
     @Arg("data") { email, firstName, lastName, password }: RegisterInput
-  ): Promise<User> {
+  ): Promise<Boolean> {
     const hashedPassword = await bcrypt.hash(password, 12);
 
     const user = await User.create({
@@ -29,8 +28,8 @@ export class RegisterResolver {
       password: hashedPassword,
     }).save();
 
-    await sendEmail( confirmationPassword + email, await createConfirmationUrl(user.id))
+    await sendEmail( email, await createConfirmationUrl(user.id))
 
-    return user;
+    return true
   }
 }
