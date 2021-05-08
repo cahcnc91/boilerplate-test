@@ -42,7 +42,7 @@
     "reflect-metadata": "^0.1.10",
     "ts-node-dev": "^1.0.0-pre.49",
     "type-graphql": "^0.17.5",
-    "typeorm": "0.2.21",
+    "typeorm": "0.2.25",
     "uuid": "^8.1.0"
   },
   "scripts": {
